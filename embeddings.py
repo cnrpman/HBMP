@@ -12,11 +12,16 @@ class SentenceEmbedding(nn.Module):
     def __init__(self, config):
         super(SentenceEmbedding, self).__init__()
         self.config = config
+        
+       
+
         self.word_embedding = nn.Embedding(config.embed_size, config.embed_dim)
+        self.word_embedding = self.word_embedding.cuda()
         self.encoder = eval(config.encoder_type)(config)
 
     def forward(self, input_sentence):
-        sentence = self.word_embedding(input_sentence)
+        idx=input_sentence.cuda()
+        sentence = self.word_embedding(idx)
         embedding = self.encoder(sentence)
         return embedding
 
@@ -109,12 +114,15 @@ class HBMP(nn.Module):
         h_0 = c_0 = Variable(inputs.data.new(self.config.cells,
                                              batch_size,
                                              self.config.hidden_dim).zero_())
+        self.rnn1.flatten_parameters()
         out1, (ht1, ct1) = self.rnn1(inputs, (h_0, c_0))
         emb1 = self.max_pool(out1.permute(1,2,0)).permute(2,0,1)
-
+        
+        self.rnn2.flatten_parameters()
         out2, (ht2, ct2) = self.rnn2(inputs, (ht1, ct1))
         emb2 = self.max_pool(out2.permute(1,2,0)).permute(2,0,1)
-
+        
+        self.rnn3.flatten_parameters()
         out3, (ht3, ct3) = self.rnn3(inputs, (ht2, ct2))
         emb3 = self.max_pool(out3.permute(1,2,0)).permute(2,0,1)
 
@@ -122,4 +130,3 @@ class HBMP(nn.Module):
         emb = emb.squeeze(0)
 
         return emb
-
