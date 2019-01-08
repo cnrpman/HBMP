@@ -148,7 +148,7 @@ def main():
 
     inputs.build_vocab(train, dev, test)
     labels.build_vocab(train)
-
+   
     if config.word_embedding:
         pretrained_embedding = os.path.join(os.getcwd(), '.vector_cache/'+config.corpus+'_'+config.word_embedding+'.pt')
         if os.path.isfile(pretrained_embedding):
@@ -260,14 +260,15 @@ def main():
             answer = model(batch)
             # sys.exit()
             # Calculate accuracy
-            n_correct += (torch.max(answer, 1)[1].view(batch.label.size()).data == batch.label.data).sum()
+         
+            n_correct += (torch.max(answer.type(torch.LongTensor),1)[1].view(batch.label.size()).data == batch.label.data).sum()
             n_total += batch.batch_size
             train_acc = 100. * n_correct/n_total
             train_accuracies.append(train_acc)
 
             # Calculate loss
-            loss = criterion(answer, batch.label)
-            all_losses.append(loss.data[0])
+            loss = criterion(answer.type(torch.FloatTensor), batch.label)
+            all_losses.append(loss.item())
 
             # Backpropagate and update the learning rate
             loss.backward()
@@ -276,7 +277,7 @@ def main():
             print('Progress: {:3.0f}% - Batch: {:>4.0f}/{:<4.0f} - Loss: {:6.2f}% - Accuracy: {:6.2f}%'.format(
                 100. * (1+batch_idx) / len(train_iter),
                 1+batch_idx, len(train_iter),
-                round(100. * np.mean(all_losses), 2),
+                round(np.mean(all_losses), 2),
                 round(np.mean(train_accuracies), 2)), end='\r')
 
             # Evaluate performance
@@ -293,15 +294,15 @@ def main():
 
                 for dev_batch_idx, dev_batch in enumerate(dev_iter):
                     answer = model(dev_batch)
-                    n_dev_correct += (torch.max(answer, 1)[1].view(dev_batch.label.size()).data == \
+                    n_dev_correct += (torch.max(answer.type(torch.LongTensor), 1)[1].view(dev_batch.label.size()).data == \
                         dev_batch.label.data).sum()
-                    dev_loss = criterion(answer, dev_batch.label)
-                    dev_losses.append(dev_loss.data[0])
+                    dev_loss = criterion(answer.type(torch.FloatTensor), dev_batch.label)
+                    dev_losses.append(dev_loss.item())
 
                 dev_acc = 100. * n_dev_correct / len(dev)
                 dev_accuracies.append(dev_acc)
 
-                print('\nDev loss: {}% - Dev accuracy: {}%'.format(round(100.*np.mean(dev_losses), 2), round(dev_acc, 2)))
+                print('\nDev loss: {}% - Dev accuracy: {}%'.format(np.round(np.mean(dev_losses), 2), np.round(dev_acc, 2)))
 
                 # Update validation best accuracy if it is better than
                 # already stored
@@ -311,7 +312,7 @@ def main():
                     best_dev_epoch = 1+epoch
                     snapshot_prefix = os.path.join(config.save_path, 'best')
                     dev_snapshot_path = snapshot_prefix + \
-                        '_{}_{}D_devacc_{}_epoch_{}.pt'.format(config.encoder_type, config.hidden_dim, round(dev_acc, 2), 1+epoch)
+                        '_{}_{}D_devacc_{}_epoch_{}.pt'.format(config.encoder_type, config.hidden_dim, np.round(dev_acc, 2), 1+epoch)
 
                     # save model, delete previous snapshot
                     torch.save(model, dev_snapshot_path)
@@ -365,10 +366,10 @@ def main():
 
                 for test_batch_idx, test_batch in enumerate(test_iter):
                     answer = test_model(test_batch)
-                    n_test_correct += (torch.max(answer, 1)[1].view(test_batch.label.size()).data == \
+                    n_test_correct += (torch.max(answer.type(torch.LongTensor), 1)[1].view(test_batch.label.size()).data == \
                         test_batch.label.data).sum()
-                    test_loss = criterion(answer, test_batch.label)
-                    test_losses.append(test_loss.data[0])
+                    test_loss = criterion(answer.type(torch.FloatTensor), test_batch.label)
+                    test_losses.append(test_loss.item())
 
                 test_acc = 100. * n_test_correct / len(test)
 
@@ -380,13 +381,13 @@ def main():
                 else:
                     print('Sentence embedding size: {}D'.format(config.hidden_dim))
 
-                print('\nMean dev accuracy: {:6.2f}%\n'.format(round(np.mean(dev_accuracies)), 2))
+                print('\nMean dev accuracy: {:6.2f}%\n'.format(np.round(np.mean(dev_accuracies)), 2))
                 print('BEST MODEL:')
                 print('Early stopping patience: {}'.format(config.early_stopping_patience))
                 print('Epoch: {}'.format(best_dev_epoch))
-                print('Dev accuracy: {:<6.2f}%'.format(round(best_dev_acc, 2)))
-                print('Test loss: {:<.2f}%'.format(round(100. * np.mean(test_losses), 2)))
-                print('Test accuracy: {:<5.2f}%\n'.format(round(test_acc, 2)))
+                print('Dev accuracy: {:<6.2f}%'.format(np.round(best_dev_acc, 2)))
+                print('Test loss: {:<.2f}%'.format(np.round(np.mean(test_losses), 2)))
+                print('Test accuracy: {:<5.2f}%\n'.format(np.round(test_acc, 2)))
 
 
 if __name__ == '__main__':
