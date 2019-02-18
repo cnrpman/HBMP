@@ -38,6 +38,29 @@ class AllNLI(data.TabularDataset):
                                    'pairID' : ('pair_id', id_field)},
             filter_pred=lambda ex: ex.label != '-')
 
+class Relation(data.TabularDataset):
+
+    dirname = 'relation_2n'
+    name = 'relation'
+
+    @staticmethod
+    def sort_key(ex):
+        return data.interleave_keys(
+            len(ex.premise), len(ex.hypothesis))
+
+    @classmethod
+    def splits(cls, text_field, label_field, parse_field=None, root='.data',
+               train='train.json', validation='dev.json',
+               test='test.json'):
+
+        path = cls.download(root)
+
+        return super(Relation, cls).splits(
+            path, root, train, validation, test,
+            format='json', fields={'text_a': ('premise', text_field),
+                                    'text_b': ('hypothesis', text_field),
+                                    'label': ('label', label_field)})
+
 
 
 class StanfordNLI(data.TabularDataset):

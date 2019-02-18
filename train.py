@@ -12,13 +12,13 @@ from torch.optim import lr_scheduler
 from torchtext import data
 from torchtext import datasets
 from classifier import NLIModel
-from corpora import MultiNLI, SciTail, StanfordNLI, AllNLI, BreakingNLI
+from corpora import MultiNLI, SciTail, StanfordNLI, AllNLI, BreakingNLI, Relation
 
 
 parser = ArgumentParser(description='Helsinki NLI')
 parser.add_argument("--corpus",
                     type=str,
-                    choices=['snli', 'breaking_nli', 'multinli_matched', 'multinli_mismatched', 'scitail', 'all_nli'],
+                    choices=['snli', 'breaking_nli', 'multinli_matched', 'multinli_mismatched', 'scitail', 'all_nli', 'relation'],
                     default='snli')
 parser.add_argument('--epochs',
                     type=int,
@@ -143,6 +143,8 @@ def main():
     elif config.corpus == 'breaking_nli':
         train, dev, test = BreakingNLI.splits(inputs, labels, category_field)
         category_field.build_vocab(test)
+    elif config.corpus == 'relation':
+        train, dev, test = Relation.splits(inputs, labels)
     else:
         train, dev, test = StanfordNLI.splits(inputs, labels)
 
